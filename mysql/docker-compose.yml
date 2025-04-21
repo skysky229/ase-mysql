@@ -23,6 +23,7 @@ services:
     volumes:
       - ./master_data:/var/lib/mysql
       - ./scripts/master-init.sh:/docker-entrypoint-initdb.d/master-init.sh
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p123456"]
       interval: 5s
