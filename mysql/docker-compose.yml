@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  mysql-master:
+    image: mysql:8.0
+    container_name: mysql-master
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_REPLICATION_USER: repl_user
+      MYSQL_REPLICATION_PASSWORD: "123456"
+      MYSQL_DATABASE: db
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: testpass
+    command: 
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --binlog-do-db=db
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./master_data:/var/lib/mysql
+      - ./scripts/master-init.sh:/docker-entrypoint-initdb.d/master-init.sh
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - custom_network
+
+  mysql-replica:
+    image: mysql:8.0
+    container_name: mysql-replica
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_REPLICATION_USER: repl_user
+      MYSQL_REPLICATION_PASSWORD: "123456"
+    command: 
+      - --server-id=2
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./replica_data:/var/lib/mysql
+      - ./scripts/replica-init.sh:/docker-entrypoint-initdb.d/replica-init.sh
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - custom_network
+
+networks:
+  custom_network:
+    external: true
